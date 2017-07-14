@@ -59,16 +59,24 @@ import java.io.File
 import java.util.*
 
 class MultiModuleJavaAnalysisCustomTest : KtUsefulTestCase() {
-
     private class TestModule(
         val project: Project,
         val _name: String, val kotlinFiles: List<KtFile>, val javaFilesScope: GlobalSearchScope,
         val _dependencies: TestModule.() -> List<TestModule>
-    ) : TrackableModuleInfo {
-        override fun createModificationTracker(): ModificationTracker = ModificationTracker.NEVER_CHANGED
-
+    ) : ModuleInfo {
         override fun dependencies() = _dependencies()
         override val name = Name.special("<$_name>")
+
+        override val platform: TargetPlatform
+            get() = JvmPlatforms.unspecifiedJvmPlatform
+
+        override val analyzerServices: PlatformDependentAnalyzerServices
+            get() = JvmPlatformAnalyzerServices
+    }
+
+    private object BuiltInModule : ModuleInfo {
+        override fun dependencies() = listOf(this)
+        override val name = Name.special("<built-in module>")
 
         override val platform: TargetPlatform
             get() = JvmPlatforms.unspecifiedJvmPlatform
@@ -91,19 +99,25 @@ class MultiModuleJavaAnalysisCustomTest : KtUsefulTestCase() {
             }
         )
 
-        val resolverForProject = object : AbstractResolverForProject<TestModule>(
+        val resolverForProject = object : AbstractResolverForProject<ModuleInfo>(
             "test",
             projectContext,
-            modules
+            modules + BuiltInModule,
         ) {
-            override fun sdkDependency(module: TestModule): TestModule? = null
+            override fun sdkDependency(module: ModuleInfo): ModuleInfo? = null
 
-            override fun modulesContent(module: TestModule): ModuleContent<TestModule> =
-                ModuleContent(module, module.kotlinFiles, module.javaFilesScope)
+            override fun modulesContent(module: ModuleInfo): ModuleContent<ModuleInfo> {
+                return if (module is TestModule)
+                    ModuleContent(module, module.kotlinFiles, module.javaFilesScope)
+                else {
+                    val allJavaFiles = GlobalSearchScope.union(modules.map(TestModule::javaFilesScope).toTypedArray())
+                    ModuleContent(module, emptyList(), GlobalSearchScope.notScope(allJavaFiles))
+                }
+            }
 
-            override fun builtInsForModule(module: TestModule): KotlinBuiltIns = builtIns
+            override fun builtInsForModule(module: ModuleInfo): KotlinBuiltIns = builtIns
 
-            override fun createResolverForModule(descriptor: ModuleDescriptor, moduleInfo: TestModule): ResolverForModule =
+            override fun createResolverForModule(descriptor: ModuleDescriptor, moduleInfo: ModuleInfo): ResolverForModule =
                 JvmResolverForModuleFactory(
                     platformParameters,
                     CompilerEnvironment,
@@ -117,12 +131,8 @@ class MultiModuleJavaAnalysisCustomTest : KtUsefulTestCase() {
                 )
         }
 
-        builtIns.initialize(
-            resolverForProject.descriptorForModule(resolverForProject.allModules.first()),
-            resolverForProject.resolverForModule(resolverForProject.allModules.first())
-                .componentProvider.get<LanguageVersionSettings>()
-                .supportsFeature(LanguageFeature.AdditionalBuiltInsMembers)
-        )
+        builtIns.builtInsModule = resolverForProject.descriptorForModule(BuiltInModule)
+        builtIns.initialize(builtIns.builtInsModule, true)
 
         performChecks(resolverForProject, modules)
     }
@@ -158,7 +168,7 @@ class MultiModuleJavaAnalysisCustomTest : KtUsefulTestCase() {
         return modules.values.toList()
     }
 
-    private fun performChecks(resolverForProject: ResolverForProject<TestModule>, modules: List<TestModule>) {
+    private fun performChecks(resolverForProject: ResolverForProject<ModuleInfo>, modules: List<TestModule>) {
         modules.forEach {
             module ->
             val moduleDescriptor = resolverForProject.descriptorForModule(module)
