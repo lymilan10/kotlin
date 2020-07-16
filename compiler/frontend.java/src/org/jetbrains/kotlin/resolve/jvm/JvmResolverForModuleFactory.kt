@@ -17,6 +17,7 @@
 package org.jetbrains.kotlin.resolve.jvm
 
 import org.jetbrains.kotlin.analyzer.*
+import org.jetbrains.kotlin.builtins.jvm.JvmBuiltInsPackageFragmentProvider
 import org.jetbrains.kotlin.config.LanguageVersionSettings
 import org.jetbrains.kotlin.container.get
 import org.jetbrains.kotlin.context.ModuleContext
@@ -38,9 +39,18 @@ import org.jetbrains.kotlin.resolve.lazy.declarations.DeclarationProviderFactory
 
 class JvmPlatformParameters(
     val packagePartProviderFactory: (ModuleContent<*>) -> PackagePartProvider,
+
     val moduleByJavaClass: (JavaClass) -> ModuleInfo?,
+
     // params: referenced module info of target class, context module info of current resolver
     val resolverForReferencedModule: ((ModuleInfo, ModuleInfo) -> ResolverForModule?)? = null,
+
+    // TODO(dsavvinov): flip the default to true, or, ideally, get rid of it altogether
+    // The reason this flag exists and set to `false` is that for `true` the dependencies should be
+    // set up correctly (in particular, dependency on SDK). Then, we have dozens of tests where
+    // the dependencies are not set up correctly, so instead of re-writing all of them, we explicitly
+    // enable loading built-ins from dependencies in two cases where that actually matters: in IDE and CLI
+    val loadBuiltInsFromDependencies: Boolean = false,
 ) : PlatformAnalysisParameters
 
 
@@ -108,16 +118,17 @@ class JvmResolverForModuleFactory(
             ExpectActualTracker.DoNothing,
             packagePartProvider,
             languageVersionSettings,
-            useBuiltInsProvider = false // TODO: load built-ins from module dependencies in IDE
+            useBuiltInsProvider = platformParameters.loadBuiltInsFromDependencies
         )
-
-        val resolveSession = container.get<ResolveSession>()
-        val javaDescriptorResolver = container.get<JavaDescriptorResolver>()
 
         val providersForModule = arrayListOf(
-            resolveSession.packageFragmentProvider,
-            javaDescriptorResolver.packageFragmentProvider
+            container.get<ResolveSession>().packageFragmentProvider,
+            container.get<JavaDescriptorResolver>().packageFragmentProvider,
         )
+
+        if (platformParameters.loadBuiltInsFromDependencies) {
+            providersForModule += container.get<JvmBuiltInsPackageFragmentProvider>()
+        }
 
         providersForModule +=
             PackageFragmentProviderExtension.getInstances(project)

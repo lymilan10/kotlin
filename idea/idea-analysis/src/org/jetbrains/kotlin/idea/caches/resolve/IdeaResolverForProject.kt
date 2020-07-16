@@ -101,7 +101,8 @@ class IdeaResolverForProject(
                     "Unexpected modules passed through JvmPlatformParameters to IDE resolver ($targetModuleInfo, $referencingModuleInfo)"
                 }
                 tryGetResolverForModuleWithResolutionAnchorFallback(targetModuleInfo, referencingModuleInfo)
-            }
+            },
+            loadBuiltInsFromDependencies = true
         )
 
         val commonPlatformParameters = CommonAnalysisParameters(

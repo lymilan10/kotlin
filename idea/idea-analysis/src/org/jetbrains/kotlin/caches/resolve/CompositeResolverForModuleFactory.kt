@@ -11,6 +11,7 @@ import com.intellij.psi.search.GlobalSearchScope
 import org.jetbrains.kotlin.analyzer.*
 import org.jetbrains.kotlin.analyzer.common.CommonAnalysisParameters
 import org.jetbrains.kotlin.analyzer.common.configureCommonSpecificComponents
+import org.jetbrains.kotlin.builtins.jvm.JvmBuiltInsPackageFragmentProvider
 import org.jetbrains.kotlin.config.LanguageVersionSettings
 import org.jetbrains.kotlin.container.*
 import org.jetbrains.kotlin.context.ModuleContext
@@ -33,6 +34,7 @@ import org.jetbrains.kotlin.platform.*
 import org.jetbrains.kotlin.platform.TargetPlatform
 import org.jetbrains.kotlin.platform.js.isJs
 import org.jetbrains.kotlin.platform.jvm.JvmPlatform
+import org.jetbrains.kotlin.platform.jvm.isJvm
 import org.jetbrains.kotlin.platform.konan.NativePlatform
 import org.jetbrains.kotlin.platform.konan.NativePlatforms
 import org.jetbrains.kotlin.resolve.*
@@ -130,8 +132,14 @@ class CompositeResolverForModuleFactory(
         return listOfNotNull(metadataProvider, klibMetadataProvider)
     }
 
+    @OptIn(ExperimentalStdlibApi::class)
     private fun getJvmProvidersIfAny(container: StorageComponentContainer): List<PackageFragmentProvider> =
-        if (targetPlatform.has<JvmPlatform>()) listOf(container.get<JavaDescriptorResolver>().packageFragmentProvider) else emptyList()
+        buildList {
+            if (targetPlatform.has<JvmPlatform>()) add(container.get<JavaDescriptorResolver>().packageFragmentProvider)
+
+            // Use JVM built-ins only for completely-JVM modules
+            if (targetPlatform.isJvm()) add(container.get<JvmBuiltInsPackageFragmentProvider>())
+        }
 
     private fun getNativeProvidersIfAny(moduleInfo: ModuleInfo, container: StorageComponentContainer): List<PackageFragmentProvider> {
         if (!targetPlatform.has<NativePlatform>()) return emptyList()
@@ -191,9 +199,11 @@ class CompositeResolverForModuleFactory(
         // JVM-specific
         if (targetPlatform.has<JvmPlatform>()) {
             configureJavaSpecificComponents(
-                moduleContext, moduleClassResolver!!, languageVersionSettings, configureJavaClassFinder = null,
+                moduleContext, moduleClassResolver!!,
+                languageVersionSettings,
+                configureJavaClassFinder = null,
                 javaClassTracker = null,
-                useBuiltInsProvider = false
+                useBuiltInsProvider = targetPlatform.isJvm() // use JVM BuiltIns only for completely JVM modules
             )
         }
 
