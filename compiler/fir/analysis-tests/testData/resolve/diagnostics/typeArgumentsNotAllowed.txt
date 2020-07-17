@@ -1,0 +1,30 @@
+FILE: typeArgumentsNotAllowed.kt
+    public final object Best : R|kotlin/Any| {
+        private constructor(): R|rest/Best| {
+            super<R|kotlin/Any|>()
+        }
+
+    }
+    public final val a: <ERROR TYPE REF: Unresolved name: MyClass> = Q|rest|.<Unresolved name: MyClass>#
+        public get(): <ERROR TYPE REF: Unresolved name: MyClass>
+    public final val b: <ERROR TYPE REF: Unresolved name: MyClass> = Q|rest/Best|.<Unresolved name: MyClass>#
+        public get(): <ERROR TYPE REF: Unresolved name: MyClass>
+    public final class B<E> : R|kotlin/Any| {
+        public constructor<E>(): R|rest/B<E>| {
+            super<R|kotlin/Any|>()
+        }
+
+    }
+    public final class C<F> : R|kotlin/Any| {
+        public constructor<F>(): R|rest/C<F>| {
+            super<R|kotlin/Any|>()
+        }
+
+    }
+    public final fun <G> gest(): R|kotlin/Unit| {
+    }
+    public final fun <T> fest(): R|kotlin/Unit| {
+        lval b: R|kotlin/collections/List<T>|
+        R|rest/gest|<R|T|>()
+        R|rest/gest|<R|T|>()
+    }
