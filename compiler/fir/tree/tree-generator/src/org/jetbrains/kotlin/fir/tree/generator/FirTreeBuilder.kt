@@ -123,7 +123,7 @@ object FirTreeBuilder : AbstractFirTreeBuilder() {
     val returnExpression = element("ReturnExpression", Expression, jump)
     val stringConcatenationCall = element("StringConcatenationCall", Expression, call, expression)
     val throwExpression = element("ThrowExpression", Expression, expression)
-    val variableAssignment = element("VariableAssignment", Expression, qualifiedAccess/*Expression*/)
+    val variableAssignment = element("VariableAssignment", Expression, qualifiedAccess)
     val whenSubjectExpression = element("WhenSubjectExpression", Expression, expression)
 
     val wrappedDelegateExpression = element("WrappedDelegateExpression", Expression, wrappedExpression)

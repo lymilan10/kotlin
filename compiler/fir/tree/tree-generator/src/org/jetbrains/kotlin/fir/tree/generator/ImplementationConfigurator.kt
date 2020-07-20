@@ -291,9 +291,6 @@ object ImplementationConfigurator : AbstractFirTreeImplementationConfigurator() 
                 value = "calleeReference"
                 customSetter = "calleeReference = value"
             }
-
-            //defaultTypeRefWithSource("FirImplicitUnitTypeRef")
-            //useTypes(implicitUnitTypeRefType)
         }
 
         impl(anonymousFunction) {
