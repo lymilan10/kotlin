@@ -1671,13 +1671,7 @@ class RawFirBuilder(
                         explicitReceiver = argument.toFirExpression("No operand")
                     }
                 }
-                else -> {
-                    buildOperatorCall {
-                        source = expression.toFirSourceElement()
-                        operation = operationToken.toFirOperation()
-                        argumentList = buildUnaryArgumentList(argument.toFirExpression("No operand"))
-                    }
-                }
+                else -> throw IllegalStateException("Unexpected expression: ${expression.text}")
             }
         }
 
