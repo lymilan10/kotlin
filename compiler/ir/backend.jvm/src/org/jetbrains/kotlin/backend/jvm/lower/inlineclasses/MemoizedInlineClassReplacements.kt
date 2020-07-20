@@ -218,7 +218,7 @@ class MemoizedInlineClassReplacements(private val mangleReturnTypes: Boolean) {
             val propertySymbol = function.correspondingPropertySymbol
             if (propertySymbol != null) {
                 val property = propertyMap.getOrPut(propertySymbol) {
-                    buildProperty(propertySymbol.descriptor) {
+                    buildProperty {
                         name = propertySymbol.owner.name
                         updateFrom(propertySymbol.owner)
                         originalDeclaration = propertySymbol.owner.originalDeclaration

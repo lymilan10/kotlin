@@ -87,7 +87,7 @@ class JsDeclarationFactory(mapping: JsMapping) : DeclarationFactory {
         val irClass = oldConstructor.parent as IrClass
         val outerThisType = (irClass.parent as IrClass).defaultType
 
-        val newConstructor = buildConstructor(oldConstructor.descriptor) {
+        val newConstructor = buildConstructor {
             updateFrom(oldConstructor)
             returnType = oldConstructor.returnType
         }.also {

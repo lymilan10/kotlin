@@ -95,7 +95,7 @@ class JvmDeclarationFactory(
     }
 
     private fun createInnerClassConstructorWithOuterThisParameter(oldConstructor: IrConstructor): IrConstructor =
-        buildConstructor(oldConstructor.descriptor) {
+        buildConstructor {
             updateFrom(oldConstructor)
             returnType = oldConstructor.returnType
         }.apply {

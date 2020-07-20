@@ -689,7 +689,7 @@ class LocalDeclarationsLowering(
             val localClassContext = localClasses[oldDeclaration.parent]!!
             val capturedValues = localClassContext.closure.capturedValues
 
-            val newDeclaration = buildConstructor(oldDeclaration.descriptor) {
+            val newDeclaration = buildConstructor {
                 updateFrom(oldDeclaration)
                 visibility = visibilityPolicy.forConstructor(oldDeclaration, constructorContext.inInlineFunctionScope)
                 returnType = oldDeclaration.returnType

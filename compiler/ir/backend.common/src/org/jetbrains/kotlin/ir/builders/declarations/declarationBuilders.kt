@@ -11,13 +11,13 @@ import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.declarations.impl.*
 import org.jetbrains.kotlin.ir.declarations.lazy.IrLazyFunction
+import org.jetbrains.kotlin.ir.declarations.lazy.IrLazyProperty
 import org.jetbrains.kotlin.ir.descriptors.*
 import org.jetbrains.kotlin.ir.symbols.impl.*
 import org.jetbrains.kotlin.ir.types.IrType
 import org.jetbrains.kotlin.ir.util.defaultType
 import org.jetbrains.kotlin.ir.util.parentAsClass
 import org.jetbrains.kotlin.name.Name
-import org.jetbrains.kotlin.serialization.deserialization.descriptors.DescriptorWithContainerSource
 import org.jetbrains.kotlin.types.Variance
 
 @PublishedApi
@@ -74,11 +74,11 @@ fun IrClass.addField(fieldName: String, fieldType: IrType, fieldVisibility: Visi
     addField(Name.identifier(fieldName), fieldType, fieldVisibility)
 
 @PublishedApi
-internal fun IrPropertyBuilder.buildProperty(originalDescriptor: PropertyDescriptor? = null): IrProperty {
-    val wrappedDescriptor = when (originalDescriptor) {
-        is DescriptorWithContainerSource -> WrappedPropertyDescriptorWithContainerSource(originalDescriptor.containerSource)
-        else -> WrappedPropertyDescriptor()
-    }
+internal fun IrPropertyBuilder.buildProperty(): IrProperty {
+    val wrappedDescriptor = if (originalDeclaration is IrLazyProperty || containerSource != null)
+        WrappedPropertyDescriptorWithContainerSource(containerSource)
+    else WrappedPropertyDescriptor()
+
     return IrPropertyImpl(
         startOffset, endOffset, origin,
         IrPropertySymbolImpl(wrappedDescriptor),
@@ -90,14 +90,14 @@ internal fun IrPropertyBuilder.buildProperty(originalDescriptor: PropertyDescrip
     }
 }
 
-inline fun buildProperty(originalDescriptor: PropertyDescriptor? = null, builder: IrPropertyBuilder.() -> Unit) =
+inline fun buildProperty(builder: IrPropertyBuilder.() -> Unit) =
     IrPropertyBuilder().run {
         builder()
-        buildProperty(originalDescriptor)
+        buildProperty()
     }
 
-inline fun IrDeclarationContainer.addProperty(originalDescriptor: PropertyDescriptor? = null, builder: IrPropertyBuilder.() -> Unit): IrProperty =
-    buildProperty(originalDescriptor, builder).also { property ->
+inline fun IrDeclarationContainer.addProperty(builder: IrPropertyBuilder.() -> Unit): IrProperty =
+    buildProperty(builder).also { property ->
         declarations.add(property)
         property.parent = this@addProperty
     }
@@ -140,10 +140,8 @@ fun IrFunctionBuilder.buildFunction(): IrSimpleFunction {
 }
 
 @PublishedApi
-internal fun IrFunctionBuilder.buildConstructor(originalDescriptor: ConstructorDescriptor?): IrConstructor {
-    val wrappedDescriptor =
-        if (originalDescriptor != null) WrappedClassConstructorDescriptor(originalDescriptor.annotations, originalDescriptor.source)
-        else WrappedClassConstructorDescriptor()
+internal fun IrFunctionBuilder.buildConstructor(): IrConstructor {
+    val wrappedDescriptor = WrappedClassConstructorDescriptor()
     return IrConstructorImpl(
         startOffset, endOffset, origin,
         IrConstructorSymbolImpl(wrappedDescriptor),
@@ -192,10 +190,10 @@ fun IrDeclarationContainer.addFunction(
         }
     }
 
-inline fun buildConstructor(originalDescriptor: ConstructorDescriptor? = null, builder: IrFunctionBuilder.() -> Unit): IrConstructor =
+inline fun buildConstructor(builder: IrFunctionBuilder.() -> Unit): IrConstructor =
     IrFunctionBuilder().run {
         builder()
-        buildConstructor(originalDescriptor)
+        buildConstructor()
     }
 
 inline fun IrClass.addConstructor(builder: IrFunctionBuilder.() -> Unit = {}): IrConstructor =
